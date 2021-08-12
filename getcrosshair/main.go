@@ -3,32 +3,51 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	dem "github.com/markus-wa/demoinfocs-golang/v2/pkg/demoinfocs"
 	events "github.com/markus-wa/demoinfocs-golang/v2/pkg/demoinfocs/events"
 )
 
 func main() {
-	f, err := os.Open("nuke-fpl.dem")
 
+	var demos []string
+	players_crosshair := make(map[string]string)
+	demopath := "C:/Demo/Pros"
+
+	err := filepath.Walk(demopath, func(path string, info os.FileInfo, err error) error {
+		demos = append(demos, path)
+		return nil
+	})
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	for _, demo := range demos {
 
-	p := dem.NewParser(f)
-	players_crosshair := make(map[string]string)
+		matched := strings.Contains(demo, ".dem")
+		if matched {
+			f, err := os.Open(demo)
 
-	p.RegisterEventHandler(func(start events.MatchStart) {
-		for _, pl := range p.GameState().Participants().All() {
-			players_crosshair[pl.Name] = pl.CrosshairCode()
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+
+			p := dem.NewParser(f)
+
+			p.RegisterEventHandler(func(start events.MatchStart) {
+				for _, pl := range p.GameState().Participants().All() {
+					players_crosshair[pl.Name] = pl.CrosshairCode()
+				}
+			})
+
+			// Parse to end
+			err = p.ParseToEnd()
+			if err != nil {
+				panic(err)
+			}
 		}
-	})
-
-	// Parse to end
-	err = p.ParseToEnd()
-	if err != nil {
-		panic(err)
 	}
 
 	for player, crosshair := range players_crosshair {
