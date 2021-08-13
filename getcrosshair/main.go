@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,9 +20,8 @@ func GetDemo(demopath string) []string {
 		}
 		return nil
 	})
-	if err != nil {
-		panic(err)
-	}
+	checkError("Cannot obtain Demos from Folder", err)
+
 	return demos
 }
 
@@ -30,10 +30,7 @@ func GetCrosshair(demos []string) map[string]string {
 	players_crosshair := make(map[string]string)
 	for _, demo := range demos {
 		f, err := os.Open(demo)
-
-		if err != nil {
-			panic(err)
-		}
+		checkError("Cannot parse Demo", err)
 		defer f.Close()
 
 		p := dem.NewParser(f)
@@ -46,12 +43,16 @@ func GetCrosshair(demos []string) map[string]string {
 
 		// Parse to end
 		err = p.ParseToEnd()
-		if err != nil {
-			panic(err)
-		}
+		checkError("Error while Parsing end", err)
 
 	}
 	return players_crosshair
+}
+
+func checkError(message string, err error) {
+	if err != nil {
+		log.Fatal(message, err)
+	}
 }
 
 func main() {
