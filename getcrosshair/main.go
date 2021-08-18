@@ -26,8 +26,8 @@ func GetDemo(demopath string) []string {
 }
 
 // Returns the Crosshair from the Demos that get into the function
-func GetCrosshair(demos []string) map[string]string {
-	players_crosshair := make(map[string]string)
+func GetCrosshair(demos []string) map[uint32][]string {
+	players_crosshair := make(map[uint32][]string)
 	for _, demo := range demos {
 		f, err := os.Open(demo)
 		checkError("Cannot parse Demo", err)
@@ -37,7 +37,10 @@ func GetCrosshair(demos []string) map[string]string {
 
 		p.RegisterEventHandler(func(start events.MatchStart) {
 			for _, pl := range p.GameState().Participants().All() {
-				players_crosshair[pl.Name] = pl.CrosshairCode()
+				if pl.CrosshairCode() == "" {
+				} else {
+					players_crosshair[pl.SteamID32()] = []string{pl.Name, pl.CrosshairCode()}
+				}
 			}
 		})
 
@@ -56,13 +59,20 @@ func checkError(message string, err error) {
 }
 
 func main() {
-	demos := GetDemo("C:/Demo/Faceit")
+
+	/*
+		For Live Going!
+
+			if len(os.Args) != 2 {
+			os.Exit(1)
+			}
+			demos := GetDemo(os.Args[1])
+	*/
+	demos := GetDemo("C:/Demo/99dmg/Season 18")
+
 	crosshairs := GetCrosshair(demos)
-
-	for player, crosshair := range crosshairs {
-		if crosshair != "" {
-			fmt.Println("Player:", player, "   Crosshair:", crosshair)
-		}
-
+	for steamid, data := range crosshairs {
+		fmt.Printf("Steamid \"%v\" Player \"%v\" Crosshair \"%v\"\n", steamid, data[0], data[1])
 	}
+
 }
