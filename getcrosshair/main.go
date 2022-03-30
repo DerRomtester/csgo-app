@@ -25,29 +25,39 @@ func GetDemo(demopath string) []string {
 	return demos
 }
 
-// Returns the Crosshair from the Demos that get into the function
-func GetCrosshair(demos []string) map[uint32][]string {
+// Gets a Crosshair from a CSGO-DemoFile and returns a map of that demo
+func GetCrosshair(demo string) map[uint32][]string {
 	players_crosshair := make(map[uint32][]string)
-	for _, demo := range demos {
-		f, err := os.Open(demo)
-		checkError("Cannot parse Demo", err)
-		defer f.Close()
+	f, err := os.Open(demo)
+	fmt.Println("Parse Start: ", demo)
+	checkError("Cannot parse Demo", err)
+	defer f.Close()
 
-		p := dem.NewParser(f)
+	p := dem.NewParser(f)
 
-		p.RegisterEventHandler(func(start events.MatchStart) {
-			for _, pl := range p.GameState().Participants().All() {
-				if pl.CrosshairCode() == "" {
-				} else {
-					players_crosshair[pl.SteamID32()] = []string{pl.Name, pl.CrosshairCode()}
-				}
+	p.RegisterEventHandler(func(start events.MatchStart) {
+		for _, pl := range p.GameState().Participants().All() {
+			if pl.CrosshairCode() == "" {
+			} else {
+				players_crosshair[pl.SteamID32()] = []string{pl.Name, pl.CrosshairCode()}
 			}
-		})
+		}
+	})
 
-		// Parse to end
-		err = p.ParseToEnd()
-		checkError("Error while Parsing end", err)
+	// Parse to end
+	err = p.ParseToEnd()
+	checkError("Error while Parsing end", err)
+	fmt.Println("Parse End: ", demo)
 
+	return players_crosshair
+}
+
+// Returns the Crosshair from all the demos and returs a map
+func ReturnCrosshair(demos []string) map[uint32][]string {
+	players_crosshair := make(map[uint32][]string)
+
+	for i := 0; i < len(demos); i++ {
+		players_crosshair = GetCrosshair(demos[i])
 	}
 	return players_crosshair
 }
@@ -68,9 +78,9 @@ func main() {
 			}
 			demos := GetDemo(os.Args[1])
 	*/
-	demos := GetDemo("C:/Demo/99dmg/Season 18")
+	demos := GetDemo("/home/stefan/development/go/csgo/demos/")
 
-	crosshairs := GetCrosshair(demos)
+	crosshairs := ReturnCrosshair(demos)
 	for steamid, data := range crosshairs {
 		fmt.Printf("Steamid \"%v\" Player \"%v\" Crosshair \"%v\"\n", steamid, data[0], data[1])
 	}
