@@ -25,8 +25,8 @@ func GetDemo(demopath string) []string {
 	return demos
 }
 
-// Gets a Crosshair from a CSGO-DemoFile and returns a map of that demo
-func GetCrosshair(demo string) map[uint32][]string {
+// Gets a Crosshair from a CSGO-DemoFile and returns a map of that demo to the channel
+func GetCrosshair(demo string, out chan map[uint32][]string) {
 	players_crosshair := make(map[uint32][]string)
 	f, err := os.Open(demo)
 	fmt.Println("Parse Start: ", demo)
@@ -40,6 +40,7 @@ func GetCrosshair(demo string) map[uint32][]string {
 			if pl.CrosshairCode() == "" {
 			} else {
 				players_crosshair[pl.SteamID32()] = []string{pl.Name, pl.CrosshairCode()}
+				out <- players_crosshair
 			}
 		}
 	})
@@ -48,18 +49,20 @@ func GetCrosshair(demo string) map[uint32][]string {
 	err = p.ParseToEnd()
 	checkError("Error while Parsing end", err)
 	fmt.Println("Parse End: ", demo)
-
-	return players_crosshair
 }
 
 // Returns the Crosshair from all the demos and returs a map
-func ReturnCrosshair(demos []string) map[uint32][]string {
-	players_crosshair := make(map[uint32][]string)
-
+func ReturnCrosshair(demos []string, players_crosshair chan map[uint32][]string) {
 	for i := 0; i < len(demos); i++ {
-		players_crosshair = GetCrosshair(demos[i])
+		go func(i int) {
+			GetCrosshair(demos[i], players_crosshair)
+			// Close the channel when all demos are finished parsing
+			if i == len(demos)-1 {
+				close(players_crosshair)
+			}
+		}(i)
 	}
-	return players_crosshair
+
 }
 
 func checkError(message string, err error) {
@@ -78,10 +81,22 @@ func main() {
 			}
 			demos := GetDemo(os.Args[1])
 	*/
-	demos := GetDemo("/home/stefan/development/go/csgo/demos/")
 
-	crosshairs := ReturnCrosshair(demos)
-	for steamid, data := range crosshairs {
+	demo := GetDemo("/home/stefan/development/go/csgo/demos/")
+	c := make(chan map[uint32][]string)
+	ReturnCrosshair(demo, c)
+
+	players_crosshair := make(map[uint32][]string)
+
+	// Make a map with all the crosshair data
+	for msg := range c {
+		for steamid, data := range msg {
+			players_crosshair[steamid] = []string{data[0], data[1]}
+		}
+	}
+
+	// Prints out the Crosshair Data of the players
+	for steamid, data := range players_crosshair {
 		fmt.Printf("Steamid \"%v\" Player \"%v\" Crosshair \"%v\"\n", steamid, data[0], data[1])
 	}
 
