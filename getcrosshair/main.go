@@ -1,15 +1,26 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	dem "github.com/markus-wa/demoinfocs-golang/v2/pkg/demoinfocs"
 	events "github.com/markus-wa/demoinfocs-golang/v2/pkg/demoinfocs/events"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+type PlayersCrosshair struct {
+	DateTime  string
+	Steamid   uint32
+	Player    string
+	Crosshair string
+}
 
 // Collects all demos from the demopath
 func GetDemo(demopath string) []string {
@@ -33,7 +44,7 @@ func GetCrosshairData(demos []string, out chan map[uint32][]string) {
 		// Goroutine for Parsing Demos
 		go func(i int) {
 			f, err := os.Open(demos[i])
-			fmt.Println("Parse Start: ", demos[i], "i: ", i)
+			fmt.Println("Parse Start: ", demos[i], "i Count: ", i)
 			checkError("Cannot parse Demo", err)
 			defer f.Close()
 
@@ -68,6 +79,27 @@ func checkError(message string, err error) {
 	}
 }
 
+func WriteToMongo(player PlayersCrosshair) {
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	checkError("Error: ", err)
+	err = client.Ping(context.TODO(), nil)
+	checkError("Error: ", err)
+
+	fmt.Println("Connected to MongoDB!")
+	collection := client.Database("crosshair-db").Collection("Crosshairdata")
+	player_info := PlayersCrosshair{
+		DateTime:  player.DateTime,
+		Steamid:   player.Steamid,
+		Player:    player.Player,
+		Crosshair: player.Crosshair,
+	}
+
+	insertResult, err := collection.InsertOne(context.TODO(), player_info)
+	checkError("Error while inserting", err)
+	fmt.Println("Inserted a Single Document: ", insertResult.InsertedID)
+}
+
 func main() {
 
 	/*
@@ -81,7 +113,6 @@ func main() {
 
 	demo := GetDemo("/home/stefan/development/go/csgo/demos/")
 	c := make(chan map[uint32][]string)
-
 	GetCrosshairData(demo, c)
 	players_crosshair := make(map[uint32][]string)
 
@@ -92,9 +123,15 @@ func main() {
 		}
 	}
 
-	// Prints out the Crosshair Data of the players
+	// Writes the crosshair data into the mongodb
 	for steamid, data := range players_crosshair {
-		fmt.Printf("Steamid \"%v\" Player \"%v\" Crosshair \"%v\"\n", steamid, data[0], data[1])
+		playerInfo := PlayersCrosshair{
+			DateTime:  time.Now().UTC().String(),
+			Steamid:   steamid,
+			Player:    data[0],
+			Crosshair: data[1],
+		}
+		WriteToMongo(playerInfo)
 	}
 
 }
