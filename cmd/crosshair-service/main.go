@@ -50,7 +50,7 @@ func GetCrosshairData(demos []string, out chan map[uint32][]string) {
 
 			p := dem.NewParser(f)
 
-			p.RegisterEventHandler(func(start events.MatchStart) {
+			p.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
 				for _, pl := range p.GameState().Participants().All() {
 					if pl.CrosshairCode() == "" {
 					} else {
@@ -111,7 +111,7 @@ func main() {
 			demos := GetDemo(os.Args[1])
 	*/
 
-	demo := GetDemo("/home/stefan/development/go/csgo/demos/")
+	demo := GetDemo("/home/stefan/csgo-demos")
 	c := make(chan map[uint32][]string)
 	GetCrosshairData(demo, c)
 	players_crosshair := make(map[uint32][]string)
@@ -131,7 +131,8 @@ func main() {
 			Player:    data[0],
 			Crosshair: data[1],
 		}
-		WriteToMongo(playerInfo)
+		// WriteToMongo(playerInfo)
+		fmt.Println(playerInfo)
 	}
 
 }
