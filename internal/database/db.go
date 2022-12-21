@@ -12,16 +12,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func checkError(message string, err error) {
-	if err != nil {
-		log.Fatal(message, err)
-	}
-}
-
 func WriteCrosshairDB(player []interface{}, c *mongo.Client) {
 	collection := c.Database("crosshair-db").Collection("Crosshairdata")
 	insertResult, err := collection.InsertMany(context.TODO(), player)
-	checkError("Error while inserting", err)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Inserted Multiple Documents ", insertResult.InsertedIDs)
 }
 

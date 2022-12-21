@@ -1,7 +1,6 @@
 package demo
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -28,7 +27,10 @@ func GetDemos(demopath string) []string {
 		}
 		return nil
 	})
-	checkError("Cannot obtain Demos from Folder", err)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return demos
 }
@@ -37,13 +39,14 @@ func GetAllCrosshairs(demos []string) []interface{} {
 	var allPlayers []PlayersData
 	for democounter := 0; democounter < len(demos); democounter++ {
 		demofile, err := os.Open(demos[democounter])
-		fmt.Println("Parse Start: ", demos[democounter], "counter Count: ", democounter)
-		checkError("Cannot parse Demo", err)
+		if err != nil {
+			log.Fatal(err)
+		}
 		defer demofile.Close()
 
-		p := dem.NewParser(demofile)
-		p.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
-			for _, player := range p.GameState().Participants().All() {
+		parse := dem.NewParser(demofile)
+		parse.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
+			for _, player := range parse.GameState().Participants().All() {
 				if player.CrosshairCode() == "" {
 				} else {
 					demopath := demofile.Name()
@@ -60,23 +63,17 @@ func GetAllCrosshairs(demos []string) []interface{} {
 			}
 		})
 
-		err = p.ParseToEnd()
-		checkError("Error while Parsing end", err)
-		fmt.Println("Parse End: ", demos[democounter])
+		err = parse.ParseToEnd()
+
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
+
 	playerdata := make([]interface{}, len(allPlayers))
 	for i := range allPlayers {
 		playerdata[i] = allPlayers[i]
 	}
+
 	return playerdata
-}
-
-func (p PlayersData) GetCrosshair() string {
-	return p.Crosshaircode
-}
-
-func checkError(message string, err error) {
-	if err != nil {
-		log.Fatal(message, err)
-	}
 }
