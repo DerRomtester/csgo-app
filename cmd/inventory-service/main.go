@@ -2,23 +2,41 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/DerRomtester/csgo-app/m/v2/internal/database"
 	"github.com/gorilla/mux"
 )
 
+var db = *database.ConnectDB()
+
+func apiHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, `{"alive": true}`)
+}
+
 func getCrosshairs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	crosshairs := database.ReadCrosshairCollection(database.ConnectDB())
+	w.WriteHeader(http.StatusOK)
+	crosshairs := database.ReadCrosshairCollection(&db)
 	json.NewEncoder(w).Encode(crosshairs)
-
 }
 
 func main() {
 	router := mux.NewRouter()
+	router.HandleFunc("/api/health", apiHealth).Methods("GET")
 	router.HandleFunc("/api/crosshairs", getCrosshairs).Methods("GET")
-	log.Fatal(http.ListenAndServe(":6000", router))
+	srv := &http.Server{
+		Addr:         "0.0.0.0:6000",
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler:      router,
+	}
 
+	log.Fatal(srv.ListenAndServe())
 }
