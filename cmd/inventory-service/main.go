@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"time"
@@ -16,7 +15,7 @@ var db = *database.ConnectDB()
 func apiHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, `{"alive": true}`)
+	json.NewEncoder(w).Encode(map[string]bool{"alive": true})
 }
 
 func getCrosshairs(w http.ResponseWriter, r *http.Request) {
