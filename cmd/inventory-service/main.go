@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/DerRomtester/csgo-app/m/v2/internal/database"
-	"github.com/gorilla/mux"
 )
 
 var db = database.ConnectDB()
@@ -28,15 +27,13 @@ func getCrosshairs(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/api/health", apiHealth).Methods("GET")
-	router.HandleFunc("/api/crosshairs", getCrosshairs).Methods("GET")
+	http.HandleFunc("/api/health", apiHealth)
+	http.HandleFunc("/api/crosshairs", getCrosshairs)
 	srv := &http.Server{
 		Addr:         "0.0.0.0:8080",
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler:      router,
 	}
 
 	log.Fatal(srv.ListenAndServe())
