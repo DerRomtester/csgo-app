@@ -3,7 +3,6 @@ module github.com/DerRomtester/csgo-app/m/v2
 go 1.19
 
 require (
-	github.com/gorilla/mux v1.8.0
 	github.com/markus-wa/demoinfocs-golang/v3 v3.1.0
 	go.mongodb.org/mongo-driver v1.11.1
 )
