@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSGO Crosshairs</title>
+</head>
+<body>
+    <h1>CSGO Crosshairs</h1>
+    <p>At this site you can find the biggest crosshair collection from hltv pro demos.</p>
+
+<style>
+		table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+		th, td {
+			border: 1px solid #dddddd;
+			padding: 8px;
+			text-align: left;
+		}
+		tr:nth-child(even) {
+			background-color: #dddddd;
+		}
+</style>
+
+<table id="dataTable">
+  <tr>
+    <th>DateTime</th>
+    <th>Steamid</th>
+    <th>Playername</th>
+    <th>Crosshaircode</th>
+    <th>Demoname</th>
+  </tr>
+</table>
+
+<script>
+  function getData() {
+    fetch('http://127.0.0.1:8080/api/crosshairs')
+    .then(response => response.json())
+			.then(data => {
+				// Get the table element
+				const table = document.getElementById("dataTable");
+
+				// Iterate over the data and add a row for each object
+				data.forEach(item => {
+					// Parse the DateTime string into a Date object
+					const date = new Date(item.DateTime);
+					// Format the date and time in a more readable format
+					const formattedDateTime = date.toLocaleString();
+
+					const row = document.createElement("tr");
+					row.innerHTML = `
+						<td>${formattedDateTime}</td>
+						<td>${item.Steamid}</td>
+						<td>${item.Playername}</td>
+						<td>${item.Crosshaircode}</td>
+						<td>${item.Demoname}</td>
+					`;
+					table.appendChild(row);
+				});
+			});
+  }
+
+  getData();
+</script>
+
+</body>
+</html>
