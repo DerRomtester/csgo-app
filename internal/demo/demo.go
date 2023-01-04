@@ -1,6 +1,7 @@
 package demo
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,7 +12,7 @@ import (
 	events "github.com/markus-wa/demoinfocs-golang/v3/pkg/demoinfocs/events"
 )
 
-type PlayersData struct {
+type PlayerInfo struct {
 	DateTime      string `bson:"datetime"`
 	Steamid       uint64 `bson:"steamid"`
 	Playername    string `bson:"playername"`
@@ -35,23 +36,24 @@ func GetDemos(demopath string) []string {
 	return demos
 }
 
-func GetAllCrosshairs(demos []string) []interface{} {
-	var allPlayers []PlayersData
+func GetCrosshairs(demos []string) []PlayerInfo {
+	var allPlayers []PlayerInfo
 	for democounter := 0; democounter < len(demos); democounter++ {
+		start := time.Now()
 		demofile, err := os.Open(demos[democounter])
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer demofile.Close()
+		demopath := demofile.Name()
+		demoname := demopath[strings.LastIndex(demopath, "/")+1:]
+		fmt.Printf("%s Analyzing Demo: %s \n", time.Now().Format(time.RFC850), demoname)
 
 		parse := dem.NewParser(demofile)
 		parse.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
 			for _, player := range parse.GameState().Participants().All() {
-				if player.CrosshairCode() == "" {
-				} else {
-					demopath := demofile.Name()
-					demoname := demopath[strings.LastIndex(demopath, "/")+1:]
-					player_info := PlayersData{
+				if player.CrosshairCode() != "" {
+					player_info := PlayerInfo{
 						DateTime:      time.Now().UTC().String(),
 						Steamid:       player.SteamID64,
 						Playername:    player.Name,
@@ -68,12 +70,9 @@ func GetAllCrosshairs(demos []string) []interface{} {
 		if err != nil {
 			log.Fatal(err)
 		}
+		elapsed := time.Since(start)
+		fmt.Printf("%s Analyzing Finished: - Duration: %s  \n", time.Now().Format(time.RFC850), elapsed)
 	}
 
-	playerdata := make([]interface{}, len(allPlayers))
-	for i := range allPlayers {
-		playerdata[i] = allPlayers[i]
-	}
-
-	return playerdata
+	return allPlayers
 }

@@ -14,16 +14,29 @@ var db = database.ConnectDB()
 func apiHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]bool{"alive": true})
+	if r.Method != http.MethodGet {
+		w.WriteHeader(405) // Return 405 Method Not Allowed.
+		json.NewEncoder(w).Encode(map[string]string{"Error": "405 Method not allowed"})
+		return
+	}
+	json.NewEncoder(w).Encode(map[string]bool{"available": true})
 }
 
 func getCrosshairs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(http.StatusOK)
-	crosshairs := database.ReadCrosshairCollection(db)
-	json.NewEncoder(w).Encode(crosshairs)
+	if r.Method != http.MethodGet {
+		w.WriteHeader(405) // Return 405 Method Not Allowed.
+		json.NewEncoder(w).Encode(map[string]string{"Error": "405 Method not allowed"})
+		return
+	}
+	crosshaircollection, collectionErr := database.ReadCrosshairCollection(db)
+	if collectionErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"Error": "Crosshair Collection not available"})
+		return
+	}
+	json.NewEncoder(w).Encode(crosshaircollection)
 }
 
 func main() {
@@ -35,6 +48,5 @@ func main() {
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
 	}
-
 	log.Fatal(srv.ListenAndServe())
 }

@@ -16,7 +16,7 @@ func main() {
 			demos := GetDemo(os.Args[1])
 	*/
 	demos := demo.GetDemos("/home/stefan/csgo-demos")
-	playerdata := demo.GetAllCrosshairs(demos)
+	playerdata := demo.GetCrosshairs(demos)
 	var DB = database.ConnectDB()
 	database.WriteCrosshairDB(playerdata, DB)
 }

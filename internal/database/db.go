@@ -12,50 +12,68 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func WriteCrosshairDB(player []interface{}, c *mongo.Client) {
-	collection := c.Database("crosshair-db").Collection("Crosshairdata")
-	insertResult, err := collection.InsertMany(context.TODO(), player)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Inserted Multiple Documents ", insertResult.InsertedIDs)
+type Player struct {
+	Player  string  `json:"playername" bson:"playername"`
+	SteamId uint64  `json:"steamid" bson:"steamid"`
+	Matches []Match `json:"matches" bson:"matches,omitempty"`
 }
 
-func ReadCrosshairCollection(client *mongo.Client) []demo.PlayersData {
-	collection := client.Database("crosshair-db").Collection("Crosshairdata")
-	var crosshairs []demo.PlayersData
-	cur, err := collection.Find(context.TODO(), bson.D{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer cur.Close(context.TODO())
-	for cur.Next(context.TODO()) {
-		var crosshair demo.PlayersData
-		err := cur.Decode(&crosshair)
+type Match struct {
+	Name      string `json:"name" bson:"name"`
+	Crosshair string `json:"crosshair" bson:"crosshair"`
+}
+
+const uri = "mongodb://root:example@localhost:27017/"
+
+func WriteCrosshairDB(players []demo.PlayerInfo, c *mongo.Client) {
+	collection := c.Database("crosshair-db").Collection("Crosshairdata")
+	for i := range players {
+		filter := Player{Player: players[i].Playername, SteamId: players[i].Steamid}
+		match := Match{Name: players[i].Demoname, Crosshair: players[i].Crosshaircode}
+		update := bson.D{{"$addToSet", bson.D{{"matches", match}}}}
+		opts := options.Update().SetUpsert(true)
+		insertResult, err := collection.UpdateOne(context.TODO(), filter, update, opts)
 		if err != nil {
 			log.Fatal(err)
 		}
-		crosshairs = append(crosshairs, crosshair)
+		fmt.Println("Inserted Document ", insertResult.ModifiedCount)
+		fmt.Println("Upserted Document ", insertResult.UpsertedCount)
 	}
-	if err := cur.Err(); err != nil {
-		log.Fatal(err)
-	}
+}
 
-	return crosshairs
+func ReadCrosshairCollection(client *mongo.Client) ([]Player, error) {
+	fmt.Println("Start Reading Crosshair Collection")
+	collection := client.Database("crosshair-db").Collection("Crosshairdata")
+	cur, err := collection.Find(context.Background(), bson.D{})
+	var CrosshairCollection []Player
+	if err != nil {
+		return CrosshairCollection, err
+	}
+	defer cur.Close(context.Background())
+	for cur.Next(context.Background()) {
+		var result Player
+		err := cur.Decode(&result)
+		if err != nil {
+			log.Fatal(err)
+		}
+		CrosshairCollection = append(CrosshairCollection, result)
+	}
+	fmt.Println("Return Crosshair Collection")
+	return CrosshairCollection, err
 }
 
 func ConnectDB() *mongo.Client {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://root:example@localhost:27017/"))
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	//ping the database
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
