@@ -8,19 +8,15 @@ function getData() {
 				// Iterate over the data and add a row for each object
 				data.forEach(item => {
 					// Parse the DateTime string into a Date object
-					const date = new Date(item.DateTime);
-					// Format the date and time in a more readable format
-					const formattedDateTime = date.toLocaleString();
-					const steamURL = ['https://steamcommunity.com/profiles/' ,item.Steamid].join('')
+					const steamURL = ['https://steamcommunity.com/profiles/' ,item.steamid].join('')
 					const row = document.createElement("tr");
 					row.innerHTML = `
-						<td>${formattedDateTime}</td>
 						<td> 
-							<a href="${steamURL}" rel="noopener" target="_blank">${item.Steamid}</a>
+							<a href="${steamURL}" rel="noopener" target="_blank">${item.steamid}</a>
 						</td>
-						<td>${item.Playername}</td>
-						<td style="font-family:Courier New;">${item.Crosshaircode}</td>
-						<td>${item.Demoname}</td>
+						<td>${item.playername}</td>
+						<td style="font-family:Courier New;">${item.matches[0].crosshair}</td>
+						<td>${item.matches[0].name}</td>
 					`;
 					table.appendChild(row);
 				});
