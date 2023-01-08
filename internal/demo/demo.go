@@ -44,7 +44,7 @@ func GetCrosshairs(demos []string, out chan []PlayerInfo) {
 	globalcounter := 0
 	for i := range demos {
 		go func(counter int) {
-			start := time.Now()
+			startanalyze := time.Now()
 			demofile, err := os.Open(demos[counter])
 			if err != nil {
 				log.Fatal(err)
@@ -77,7 +77,7 @@ func GetCrosshairs(demos []string, out chan []PlayerInfo) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			elapsed := time.Since(start)
+			elapsed := time.Since(startanalyze)
 			globalcounter++
 			fmt.Printf("%s Analyzing Finished: - Duration: %s  \n", time.Now().Format("2006-01-02 15:04:05"), elapsed)
 			if globalcounter == len(demos) {
