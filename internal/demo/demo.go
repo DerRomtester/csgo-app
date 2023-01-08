@@ -14,7 +14,8 @@ import (
 
 type PlayerInfo struct {
 	DateTime      string `bson:"datetime"`
-	Steamid       uint64 `bson:"steamid"`
+	SteamID64     uint64 `bson:"steamid_64"`
+	SteamID32     uint32 `bson:"steamid_32"`
 	Playername    string `bson:"playername"`
 	Crosshaircode string `bson:"crosshaircode"`
 	Demoname      string `bson:"demoname"`
@@ -36,43 +37,50 @@ func GetDemos(demopath string) []string {
 	return demos
 }
 
-func GetCrosshairs(demos []string) []PlayerInfo {
+func GetCrosshairs(demos []string, out chan []PlayerInfo) {
 	var allPlayers []PlayerInfo
-	for democounter := 0; democounter < len(demos); democounter++ {
-		start := time.Now()
-		demofile, err := os.Open(demos[democounter])
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer demofile.Close()
-		demopath := demofile.Name()
-		demoname := demopath[strings.LastIndex(demopath, "/")+1:]
-		fmt.Printf("%s Analyzing Demo: %s \n", time.Now().Format(time.RFC850), demoname)
-
-		parse := dem.NewParser(demofile)
-		parse.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
-			for _, player := range parse.GameState().Participants().All() {
-				if player.CrosshairCode() != "" {
-					player_info := PlayerInfo{
-						DateTime:      time.Now().UTC().String(),
-						Steamid:       player.SteamID64,
-						Playername:    player.Name,
-						Crosshaircode: player.CrosshairCode(),
-						Demoname:      demoname,
-					}
-					allPlayers = append(allPlayers, player_info)
-				}
+	globalcounter := 0
+	for i := range demos {
+		go func(counter int) {
+			start := time.Now()
+			demofile, err := os.Open(demos[counter])
+			if err != nil {
+				log.Fatal(err)
 			}
-		})
+			defer demofile.Close()
+			demopath := demofile.Name()
+			demoname := demopath[strings.LastIndex(demopath, "/")+1:]
+			fmt.Printf("%s Analyzing Demo: %s \n", time.Now().Format("2006-01-02 15:04:05"), demoname)
 
-		err = parse.ParseToEnd()
+			parse := dem.NewParser(demofile)
+			parse.RegisterEventHandler(func(start events.AnnouncementWinPanelMatch) {
+				for _, player := range parse.GameState().Participants().All() {
+					if player.CrosshairCode() != "" {
+						player_info := PlayerInfo{
+							DateTime:      time.Now().UTC().String(),
+							SteamID64:     player.SteamID64,
+							SteamID32:     player.SteamID32(),
+							Playername:    player.Name,
+							Crosshaircode: player.CrosshairCode(),
+							Demoname:      demoname,
+						}
+						allPlayers = append(allPlayers, player_info)
+					}
+				}
+			})
 
-		if err != nil {
-			log.Fatal(err)
-		}
-		elapsed := time.Since(start)
-		fmt.Printf("%s Analyzing Finished: - Duration: %s  \n", time.Now().Format(time.RFC850), elapsed)
+			err = parse.ParseToEnd()
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			elapsed := time.Since(start)
+			globalcounter++
+			fmt.Printf("%s Analyzing Finished: - Duration: %s  \n", time.Now().Format("2006-01-02 15:04:05"), elapsed)
+			if globalcounter == len(demos) {
+				out <- allPlayers
+				close(out)
+			}
+		}(i)
 	}
-
-	return allPlayers
 }
