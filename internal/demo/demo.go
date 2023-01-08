@@ -56,19 +56,20 @@ func GetCrosshairs(demos []string, out chan []PlayerInfo) {
 			parse := dem.NewParser(demofile)
 			parse.RegisterEventHandler(func(start events.AnnouncementLastRoundHalf) {
 				for _, player := range parse.GameState().Participants().All() {
-					if player.CrosshairCode() != "" {
-						player_info := PlayerInfo{
-							DateTime:      time.Now().UTC().String(),
-							SteamID64:     player.SteamID64,
-							SteamID32:     player.SteamID32(),
-							Playername:    player.Name,
-							Crosshaircode: player.CrosshairCode(),
-							Demoname:      demoname,
-						}
-						allPlayers = append(allPlayers, player_info)
-					} else {
+					// Continue if crosshaircode is empty
+					if player.CrosshairCode() == "" {
 						fmt.Printf("Could not read Crosshaircode from Player %s SteamID %d Code: %s \n", player.Name, player.SteamID64, player.CrosshairCode())
+						continue
 					}
+					player_info := PlayerInfo{
+						DateTime:      time.Now().UTC().String(),
+						SteamID64:     player.SteamID64,
+						SteamID32:     player.SteamID32(),
+						Playername:    player.Name,
+						Crosshaircode: player.CrosshairCode(),
+						Demoname:      demoname,
+					}
+					allPlayers = append(allPlayers, player_info)
 				}
 			})
 
