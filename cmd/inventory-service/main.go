@@ -54,8 +54,8 @@ func getCrosshairsPG(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/api/health", apiHealth)
-	http.HandleFunc("/api/crosshairs", getCrosshairs)
-	http.HandleFunc("/api/pgcrosshairs", getCrosshairsPG)
+	http.HandleFunc("/api/mg_crosshairs", getCrosshairs)
+	http.HandleFunc("/api/pg_crosshairs", getCrosshairsPG)
 	srv := &http.Server{
 		Addr:         "0.0.0.0:8080",
 		WriteTimeout: time.Second * 15,
