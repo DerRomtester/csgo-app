@@ -9,7 +9,8 @@ import (
 	"github.com/DerRomtester/csgo-app/m/v2/internal/database"
 )
 
-var db = database.ConnectDB()
+var Mg_db = *database.Mongo_ConnectDB()
+var Pg_db = *database.Pg_ConnectDB()
 
 func apiHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -30,7 +31,7 @@ func getCrosshairs(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"Error": "405 Method not allowed"})
 		return
 	}
-	crosshaircollection, collectionErr := database.ReadCrosshairCollection(db)
+	crosshaircollection, collectionErr := database.Mongo_ReadCrosshairCollection(&Mg_db)
 	if collectionErr != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"Error": "Crosshair Collection not available"})
@@ -39,9 +40,22 @@ func getCrosshairs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(crosshaircollection)
 }
 
+func getCrosshairsPG(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if r.Method != http.MethodGet {
+		w.WriteHeader(405) // Return 405 Method Not Allowed.
+		json.NewEncoder(w).Encode(map[string]string{"Error": "405 Method not allowed"})
+		return
+	}
+	crosshaircollection := database.Pg_ReadCrosshairCollection(&Pg_db)
+	json.NewEncoder(w).Encode(crosshaircollection)
+}
+
 func main() {
 	http.HandleFunc("/api/health", apiHealth)
 	http.HandleFunc("/api/crosshairs", getCrosshairs)
+	http.HandleFunc("/api/pgcrosshairs", getCrosshairsPG)
 	srv := &http.Server{
 		Addr:         "0.0.0.0:8080",
 		WriteTimeout: time.Second * 15,
