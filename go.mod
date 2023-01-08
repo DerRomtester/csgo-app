@@ -3,6 +3,7 @@ module github.com/DerRomtester/csgo-app/m/v2
 go 1.19
 
 require (
+	github.com/lib/pq v1.10.7
 	github.com/markus-wa/demoinfocs-golang/v3 v3.2.0
 	go.mongodb.org/mongo-driver v1.11.1
 )
@@ -16,7 +17,7 @@ require (
 	github.com/markus-wa/godispatch v1.4.1 // indirect
 	github.com/markus-wa/ice-cipher-go v0.0.0-20220823210642-1fcccd18c6c1 // indirect
 	github.com/markus-wa/quickhull-go/v2 v2.2.0 // indirect
-	github.com/montanaflynn/stats v0.6.6 // indirect
+	github.com/montanaflynn/stats v0.7.0 // indirect
 	github.com/oklog/ulid/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
