@@ -22,8 +22,9 @@ type Player struct {
 }
 
 type Match struct {
-	Name      string `json:"name" bson:"name"`
-	Crosshair string `json:"crosshair" bson:"crosshair"`
+	MapName       string `bson:"mapname"`
+	PlaybackTime  int    `bson:"playbacktime"`
+	Crosshaircode string `bson:"crosshaircode"`
 }
 
 type SQL struct {
@@ -48,8 +49,7 @@ func Pg_ConnectDB() *sql.DB {
 		log.Fatal(err)
 	}
 
-	err = db.Ping()
-	if err != nil {
+	if err = db.Ping(); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to PgSQL")
@@ -61,10 +61,13 @@ func Pg_WriteCrosshairDB(players []demo.PlayerInfo, db *sql.DB) {
 	for i := range players {
 		sqlStatement = append(sqlStatement, `INSERT INTO crosshairs(code) VALUES ($1);`)
 		sqlStatement = append(sqlStatement, `INSERT INTO players(steamid64, steamid32, name) VALUES ($1, $2, $3);`)
-		sqlStatement = append(sqlStatement, `INSERT INTO matches(playerid, crosshairid, matchname)VALUES ((select id from players where steamid64 = $1 limit 1), (select id from crosshairs where code = $2 limit 1), $3);`)
-		db.Exec(sqlStatement[0], players[i].Crosshaircode)
+		sqlStatement = append(sqlStatement, `INSERT INTO public.matches(
+			"FileStamp", "Protocol", "NetworkProtocol", "Servername", "ClientName", "MapName", "GameDirectory", "PlaybackTime", "PlaybackTicks", "PlaybackFrames", "SignonLength")
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`)
+
+		db.Exec(sqlStatement[0], players[i].Demo.Crosshaircode)
 		db.Exec(sqlStatement[1], players[i].SteamID64, players[i].SteamID32, players[i].Playername)
-		db.Exec(sqlStatement[2], players[i].SteamID64, players[i].Crosshaircode, players[i].Demoname)
+		db.Exec(sqlStatement[2], players[i].Demo.FileStamp, players[i].Demo.Protocol, players[i].Demo.NetworkProtocol, players[i].Demo.Servername, players[i].Demo.ClientName, players[i].Demo.MapName, players[i].Demo.GameDirectory, players[i].Demo.PlaybackTime, players[i].Demo.PlaybackTicks, players[i].Demo.PlaybackFrames, players[i].Demo.SignonLength)
 	}
 	db.Close()
 }
@@ -94,7 +97,20 @@ func Mongo_WriteCrosshairDB(players []demo.PlayerInfo, c *mongo.Client) {
 	collection := c.Database("crosshair-db").Collection("Crosshairdata")
 	for i := range players {
 		filter := Player{Player: players[i].Playername, SteamID64: players[i].SteamID64, SteamID32: players[i].SteamID32}
-		match := Match{Name: players[i].Demoname, Crosshair: players[i].Crosshaircode}
+		match := demo.DemoInfo{
+			FileStamp:       players[i].Demo.FileStamp,
+			Protocol:        players[i].Demo.Protocol,
+			NetworkProtocol: players[i].Demo.NetworkProtocol,
+			Servername:      players[i].Demo.Servername,
+			ClientName:      players[i].Demo.ClientName,
+			MapName:         players[i].Demo.MapName,
+			GameDirectory:   players[i].Demo.GameDirectory,
+			PlaybackTime:    players[i].Demo.PlaybackTime,
+			PlaybackTicks:   players[i].Demo.PlaybackTicks,
+			PlaybackFrames:  players[i].Demo.PlaybackFrames,
+			SignonLength:    players[i].Demo.SignonLength,
+			Crosshaircode:   players[i].Demo.Crosshaircode,
+		}
 		update := bson.D{{"$addToSet", bson.D{{"matches", match}}}}
 		opts := options.Update().SetUpsert(true)
 		insertResult, err := collection.UpdateOne(context.TODO(), filter, update, opts)
@@ -117,8 +133,7 @@ func Mongo_ReadCrosshairCollection(client *mongo.Client) ([]Player, error) {
 	defer cur.Close(context.Background())
 	for cur.Next(context.Background()) {
 		var result Player
-		err := cur.Decode(&result)
-		if err != nil {
+		if err := cur.Decode(&result); err != nil {
 			log.Fatal(err)
 		}
 		CrosshairCollection = append(CrosshairCollection, result)
@@ -134,13 +149,11 @@ func Mongo_ConnectDB() *mongo.Client {
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	err = client.Connect(ctx)
-	if err != nil {
+	if err = client.Connect(ctx); err != nil {
 		log.Fatal(err)
 	}
 
-	err = client.Ping(ctx, nil)
-	if err != nil {
+	if err = client.Ping(ctx, nil); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to MongoDB")
